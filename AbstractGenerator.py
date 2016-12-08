@@ -3,8 +3,9 @@
 Generate abstract document (docx) file from table (xlsx)
 by nebula
 
-Dependency: pandas, xlrd, python-docx
+Dependency: pandas, xlrd, python-docx, pillow
 """
+from PIL import Image
 import pandas as pd
 import docx
 import math
@@ -21,6 +22,9 @@ class AbstractGenerator:
         self.exreg4affiliation = re.compile(r'^((?:\(.+\))*)(.+)$')
         self.exreg4super = re.compile(r'(\(\w+\))')
         self.exreg4italic = re.compile(r'(\<i\>\w+\</i\>)')
+        self.preferredImageMaxWidth = 14  # cm
+        self.preferredImageMaxHeight = 8.5 # cm
+        self.preferredImageDpi = 72
 
     def _insert_image(self, filename, image_filename):
         doc = docx.Document(filename)
@@ -35,8 +39,13 @@ class AbstractGenerator:
 
         doc.save(filename)
 
-    def _toArray(self, text, delim):
+    def _empty(self, text):
         if isinstance(text, float) and math.isnan(text):
+            return True
+        return text.strip() == ''
+
+    def _toArray(self, text, delim):
+        if self._empty(text) == True:
             return []
         items = text.split(delim)
         return [item for item in items if item.strip()]
@@ -53,6 +62,28 @@ class AbstractGenerator:
                  num += ', '
              num += n
         return num
+
+    def _getImageSize(self, pixel, dpi):
+        return pixel / dpi * 2.54
+
+    def _getPreferredImageSize(self, fpath):
+        img = Image.open(fpath)
+        dpi = (self.preferredImageDpi, self.preferredImageDpi)
+        if 'dpi' in img.info:
+            dpi = img.info['dpi']
+        if 'jfif_density' in img.info:
+            dpi = img.info['jfif_density']
+        width = self._getImageSize(img.size[0], dpi[0])
+        height = self._getImageSize(img.size[1], dpi[1])
+        if width > self.preferredImageMaxWidth:
+            height = height * self.preferredImageMaxWidth / width
+            width = self.preferredImageMaxWidth
+        if height > self.preferredImageMaxHeight:
+            width = width * self.preferredImageMaxHeight / height
+            height = self.preferredImageMaxHeight
+        # print('image: %s(w:%dpx(%gcm),h:%dpx(%gcm),dpi:%s) -> (w:%gcm,h:%gcm)' % (fpath, img.size[0], self._getImageSize(img.size[0], dpi[0]), img.size[1], self._getImageSize(img.size[1], dpi[1]), dpi, width, height))
+        img.close()
+        return (docx.shared.Cm(width), docx.shared.Cm(height))
 
     def read_xlsx(self, filename):
         print('Reading: %s' % filename)
@@ -124,7 +155,7 @@ class AbstractGenerator:
 
         font = doc.styles['Normal'].font
         font.size = docx.shared.Pt(10)
-        font.name = 'Lucida Grande'
+        font.name = 'Times New Roman'
 
         # Program Number
         #p = doc.add_paragraph()
@@ -157,7 +188,7 @@ class AbstractGenerator:
             num = self._removeParentheses(m.group(2).strip())
             p.add_run(name).bold = True
             if num != '':
-                r = p.add_run(num)
+                r = p.add_run('\u00A0' + num)
                 r.bold = True
                 r.font.superscript = True
             first = False
@@ -173,7 +204,7 @@ class AbstractGenerator:
             num = self._removeParentheses(m.group(1).strip())
             name = m.group(2).strip()
             if num != '':
-                r = p.add_run(num + ' ')
+                r = p.add_run(num + '\u00A0')
                 r.font.superscript = True
             p.add_run(name)
             first = False
@@ -186,30 +217,40 @@ class AbstractGenerator:
 
         # Abstract Body
         items = self._toArray(record['Abstract'], '\n')
+        first = True
         for item in items:
             p = doc.add_paragraph(item)
             p.alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.JUSTIFY
-            p.paragraph_format.line_spacing = docx.shared.Pt(10)
-
+            p.paragraph_format.line_spacing = docx.shared.Pt(11)
+            p.paragraph_format.space_after = docx.shared.Pt(2)
+            if first == False:
+                p.paragraph_format.first_line_indent = docx.shared.Pt(12)
+            first = False
         p.paragraph_format.space_after = docx.shared.Pt(12)
 
         # Figure
-        doc.add_picture(os.path.join(self.image_dir, record['Figure file Name']))
-        p = doc.paragraphs[-1]
-        p.alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.CENTER
+        if self._empty(record['Figure file Name']) == False:
 
-        # Figure Comment
-        items = self._toArray(record['Figure comment'], '\n')
-        first = True
-        for item in items:
-            p = doc.add_paragraph()
-            p.paragraph_format.line_spacing = docx.shared.Pt(10)
-            p.paragraph_format.space_after = docx.shared.Pt(0)
-            p.alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.JUSTIFY
-            if first:
-                p.add_run('Figure: ').bold = True
-                first = False
-            p.add_run(item)
+            # Figure File Name
+            img_fpath = os.path.join(self.image_dir, record['Figure file Name'])
+            size = self._getPreferredImageSize(img_fpath)
+            doc.add_picture(img_fpath, width=size[0]) #, height=size[1])
+            p = doc.paragraphs[-1]
+            p.alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.CENTER
+
+            # Figure Comment
+            items = self._toArray(record['Figure comment'], '\n')
+            first = True
+            for item in items:
+                p = doc.add_paragraph()
+                p.paragraph_format.line_spacing = docx.shared.Pt(10)
+                p.paragraph_format.space_after = docx.shared.Pt(0)
+                p.alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.JUSTIFY
+                if first:
+                    p.add_run('Figure: ').bold = True
+                    first = False
+                p.add_run(item)
+
         p.paragraph_format.space_after = docx.shared.Pt(14)
 
         # References
@@ -270,7 +311,7 @@ class AbstractGenerator:
                 author_tmp += ', '
             author_tmp += m.group(1).strip()
             first = False
-        p.add_run(author_tmp + ' (2016). ' + record['Title'] + '. ')
+        p.add_run(author_tmp + ' (2016). ' + record['Title'].strip().replace('\n', ' ') + '. ')
         p.add_run('Advances in Neuroinformatics IV. ').italic = True
         p.add_run('AINI 2016 and INCF Nodes Workshop Abstract: ' + record['Program No. Long'].strip() + '. DOI:' + record['DOI'].strip())
 

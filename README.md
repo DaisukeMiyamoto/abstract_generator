@@ -9,6 +9,7 @@ generate abstract document from excel table
 - pandas
 - xlrd
 - python-docx
+- pillow
 
 ## usage
 ```
