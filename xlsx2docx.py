@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from AbstractGenerator import AbstractGenerator
+import sys
 from optparse import OptionParser
-import getopt, sys
+
+from abstract_generator.AbstractGenerator import AbstractGenerator
+
 
 def main():
     usage = 'Usage: %prog [options] input.xlsx output.docx'
@@ -26,6 +28,7 @@ def main():
     abgen.read_xlsx(input_xlsx)
     abgen.write_docx(output_docx, template_docx)
     sys.exit()
+
 
 if __name__ == '__main__':
     main()
