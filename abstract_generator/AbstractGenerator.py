@@ -21,7 +21,11 @@ class AbstractGenerator:
         self.exreg4author = re.compile(r'^([^\)]+)((?:\(.+\))*)$')
         self.exreg4affiliation = re.compile(r'^((?:\(.+\))*)(.+)$')
         self.exreg4super = re.compile(r'(\(\w+\))')
-        self.exreg4italic = re.compile(r'(\<i\>\w+\</i\>)')
+        # self.exreg4italic = re.compile(r'(\<i\>\w+\</i\>)')
+        self.exreg4italic = re.compile(r'(\<i\>.*?\</i\>)')
+        self.exreg4sup = re.compile(r'(\<sup\>.*?\</sup\>)')
+        self.exreg4sub = re.compile(r'(\<sub\>.*?\</sub\>)')
+        self.exreg4strip_tags = re.compile(r'<[^>]*?>')
         self.preferredImageMaxWidth = 14  # cm
         self.preferredImageMaxHeight = 8.5  # cm
         self.preferredImageDpi = 72
@@ -142,7 +146,16 @@ class AbstractGenerator:
         p.runs[0].italic = True
 
         # Abstract Body
-        p = doc.add_paragraph(record.abstract)
+        p = doc.add_paragraph()
+        abstract_split = self.exreg4italic.split(record.abstract)
+        italic_mode = False
+        for split in abstract_split:
+            if italic_mode:
+                print(split)
+            p.add_run(self.exreg4strip_tags.sub('', split)).italic = italic_mode
+
+            italic_mode = not italic_mode
+            # p = doc.add_paragraph(record.abstract)
 
         # keywords
         p = doc.add_paragraph('Keywords: ')
