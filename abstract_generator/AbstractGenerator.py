@@ -83,7 +83,7 @@ class AbstractGenerator:
             height = self.preferredImageMaxHeight
         # print('image: %s(w:%dpx(%gcm),h:%dpx(%gcm),dpi:%s) -> (w:%gcm,h:%gcm)' % (fpath, img.size[0], self._getImageSize(img.size[0], dpi[0]), img.size[1], self._getImageSize(img.size[1], dpi[1]), dpi, width, height))
         img.close()
-        return (docx.shared.Cm(width), docx.shared.Cm(height))
+        return docx.shared.Cm(width), docx.shared.Cm(height)
 
     def read_xlsx(self, filename):
         print('Reading: %s' % filename)
@@ -100,7 +100,7 @@ class AbstractGenerator:
 
         first = True
         for i in self.records.index:
-            if first == True:
+            if first:
                 section = doc.sections[0]
             else:
                 section = doc.add_section(docx.enum.section.WD_SECTION.NEW_PAGE)
@@ -120,7 +120,7 @@ class AbstractGenerator:
         doc.save(filename)
 
     def _write_doc_jscpb2016(self, doc, record):
-        print('"%s"' % record['title'])
+        #print(record['title'])
 
         # Title
         p = doc.add_paragraph(record.title)

@@ -34,5 +34,5 @@ if __name__ == '__main__':
     # main()
     abgen = AbstractGenerator('', 'jscpb2016')
 
-    abgen.read_xlsx('input.xlsx')
+    abgen.read_xlsx('eguide_20170923.xlsx')
     abgen.write_docx('output.docx', 'template-jscpb2017.docx')
