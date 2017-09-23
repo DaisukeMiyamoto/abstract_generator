@@ -25,7 +25,8 @@ class AbstractGenerator:
         self.exreg4italic = re.compile(r'(\<i\>.*?\</i\>)')
         self.exreg4sup = re.compile(r'(\<sup\>.*?\</sup\>)')
         self.exreg4sub = re.compile(r'(\<sub\>.*?\</sub\>)')
-        self.exreg4strip_tags = re.compile(r'<[^>]*?>')
+        self.exreg4tags = re.compile(r'(\<.*?\>.*?\</.*?\>)')
+        self.exreg4tag_strip = re.compile(r'<[^>]*?>')
         self.preferredImageMaxWidth = 14  # cm
         self.preferredImageMaxHeight = 8.5  # cm
         self.preferredImageDpi = 72
@@ -89,6 +90,33 @@ class AbstractGenerator:
         img.close()
         return docx.shared.Cm(width), docx.shared.Cm(height)
 
+    def _apply_it_sup_sub(self, doc, body, debug=False):
+        p = doc.add_paragraph()
+        body_split = self.exreg4tags.split(body)
+
+        for split in body_split:
+            italic_mode = False
+            sup_mode = False
+            sub_mode = False
+
+            if self.exreg4italic.match(split):
+                italic_mode = True
+            if self.exreg4sup.match(split):
+                sup_mode = True
+            if self.exreg4sub.match(split):
+                sub_mode = True
+
+            if debug:
+                run = p.add_run(split)
+            else:
+                run = p.add_run(self.exreg4tag_strip.sub('', split))
+
+            run.italic = italic_mode
+            run.font.superscript = sup_mode
+            run.font.subscript = sub_mode
+
+        return p
+
     def read_xlsx(self, filename):
         print('Reading: %s' % filename)
         exls = pd.ExcelFile(filename)
@@ -127,9 +155,11 @@ class AbstractGenerator:
         #print(record['title'])
 
         # Title
-        p = doc.add_paragraph(record.title)
-        p.runs[0].font.size = docx.shared.Pt(12)
-        p.runs[0].bold = True
+        # p = doc.add_paragraph(record.title)
+        p = self._apply_it_sup_sub(doc, record.title, debug=True)
+        for run in p.runs:
+            run.font.size = docx.shared.Pt(12)
+            run.bold = True
 
         # Authors
         p = doc.add_paragraph()
@@ -146,16 +176,9 @@ class AbstractGenerator:
         p.runs[0].italic = True
 
         # Abstract Body
-        p = doc.add_paragraph()
-        abstract_split = self.exreg4italic.split(record.abstract)
-        italic_mode = False
-        for split in abstract_split:
-            if italic_mode:
-                print(split)
-            p.add_run(self.exreg4strip_tags.sub('', split)).italic = italic_mode
+        self._apply_it_sup_sub(doc, record.abstract, debug=True)
 
-            italic_mode = not italic_mode
-            # p = doc.add_paragraph(record.abstract)
+        # p = doc.add_paragraph(record.abstract)
 
         # keywords
         p = doc.add_paragraph('Keywords: ')
