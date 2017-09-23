@@ -23,7 +23,7 @@ class AbstractGenerator:
         self.exreg4super = re.compile(r'(\(\w+\))')
         self.exreg4italic = re.compile(r'(\<i\>\w+\</i\>)')
         self.preferredImageMaxWidth = 14  # cm
-        self.preferredImageMaxHeight = 8.5 # cm
+        self.preferredImageMaxHeight = 8.5  # cm
         self.preferredImageDpi = 72
 
     def _insert_image(self, filename, image_filename):
@@ -31,7 +31,7 @@ class AbstractGenerator:
 
         for paragraph in doc.paragraphs:
             if '[[FIGURE]]' in paragraph.text:
-                #paragraph.text = ''
+                # paragraph.text = ''
                 run = paragraph.add_run()
                 run.add_paragraph()
                 inline_shape = run.add_picture(image_filename, width=docx.shared.Pt(300))
@@ -55,12 +55,12 @@ class AbstractGenerator:
         nums = exreg.split(text)
         num = ''
         for n in nums:
-             n = n.strip()
-             if n == '':
-                 continue
-             if num != '':
-                 num += ', '
-             num += n
+            n = n.strip()
+            if n == '':
+                continue
+            if num != '':
+                num += ', '
+            num += n
         return num
 
     def _getImageSize(self, pixel, dpi):
@@ -148,7 +148,6 @@ class AbstractGenerator:
         p = doc.add_paragraph('Keywords: ')
         p.add_run(record.keywords).italic = True
 
-
     def _write_doc_aini2016(self, doc, record):
         print('"%s"' % record['Title'])
         exreg4num = re.compile(r'\((\w+)\)')
@@ -158,10 +157,10 @@ class AbstractGenerator:
         font.name = 'Times New Roman'
 
         # Program Number
-        #p = doc.add_paragraph()
-        #p.paragraph_format.line_spacing = docx.shared.Pt(12)
-        #p.paragraph_format.space_after = docx.shared.Pt(5)
-        #r = p.add_run(record['Program No.'].strip())
+        # p = doc.add_paragraph()
+        # p.paragraph_format.line_spacing = docx.shared.Pt(12)
+        # p.paragraph_format.space_after = docx.shared.Pt(5)
+        # r = p.add_run(record['Program No.'].strip())
 
         # Title
         p = doc.add_paragraph()
@@ -234,7 +233,7 @@ class AbstractGenerator:
             # Figure File Name
             img_fpath = os.path.join(self.image_dir, record['Figure file Name'])
             size = self._getPreferredImageSize(img_fpath)
-            doc.add_picture(img_fpath, width=size[0]) #, height=size[1])
+            doc.add_picture(img_fpath, width=size[0])  # , height=size[1])
             p = doc.paragraphs[-1]
             p.alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.CENTER
 
@@ -313,7 +312,9 @@ class AbstractGenerator:
             first = False
         p.add_run(author_tmp + ' (2016). ' + record['Title'].strip().replace('\n', ' ') + '. ')
         p.add_run('Advances in Neuroinformatics IV. ').italic = True
-        p.add_run('AINI 2016 and INCF Nodes Workshop Abstract: ' + record['Program No. Long'].strip() + '. DOI:' + record['DOI'].strip())
+        p.add_run(
+            'AINI 2016 and INCF Nodes Workshop Abstract: ' + record['Program No. Long'].strip() + '. DOI:' + record[
+                'DOI'].strip())
 
 
 if __name__ == '__main__':
