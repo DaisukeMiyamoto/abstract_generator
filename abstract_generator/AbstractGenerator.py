@@ -44,18 +44,20 @@ class AbstractGenerator:
 
         doc.save(filename)
 
-    def _empty(self, text):
+    @staticmethod
+    def _empty(text):
         if isinstance(text, float) and math.isnan(text):
             return True
         return text.strip() == ''
 
-    def _toArray(self, text, delim):
-        if self._empty(text) == True:
+    def _to_array(self, text, delim):
+        if self._empty(text):
             return []
         items = text.split(delim)
         return [item for item in items if item.strip()]
 
-    def _removeParentheses(self, text):
+    @staticmethod
+    def _remove_parentheses(text):
         exreg = re.compile(r'\((\w+)\)')
         nums = exreg.split(text)
         num = ''
@@ -68,18 +70,19 @@ class AbstractGenerator:
             num += n
         return num
 
-    def _getImageSize(self, pixel, dpi):
+    @staticmethod
+    def _get_image_size(pixel, dpi):
         return pixel / dpi * 2.54
 
-    def _getPreferredImageSize(self, fpath):
+    def _get_preferred_image_size(self, fpath):
         img = Image.open(fpath)
         dpi = (self.preferredImageDpi, self.preferredImageDpi)
         if 'dpi' in img.info:
             dpi = img.info['dpi']
         if 'jfif_density' in img.info:
             dpi = img.info['jfif_density']
-        width = self._getImageSize(img.size[0], dpi[0])
-        height = self._getImageSize(img.size[1], dpi[1])
+        width = self._get_image_size(img.size[0], dpi[0])
+        height = self._get_image_size(img.size[1], dpi[1])
         if width > self.preferredImageMaxWidth:
             height = height * self.preferredImageMaxWidth / width
             width = self.preferredImageMaxWidth
@@ -152,7 +155,7 @@ class AbstractGenerator:
         doc.save(filename)
 
     def _write_doc_jscpb2016(self, doc, record):
-        #print(record['title'])
+        print(record.title)
 
         # Title
         # p = doc.add_paragraph(record.title)
@@ -213,14 +216,14 @@ class AbstractGenerator:
         p.alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.CENTER
         p.paragraph_format.line_spacing = docx.shared.Pt(12)
         p.paragraph_format.space_after = docx.shared.Pt(12)
-        authors = self._toArray(record['Name'], '\n')
+        authors = self._to_array(record['Name'], '\n')
         first = True
         for author in authors:
             m = self.exreg4author.match(author)
-            if first == False:
+            if not first:
                 p.add_run(', ').bold = True
             name = m.group(1).strip().replace(' ', '\u00A0')
-            num = self._removeParentheses(m.group(2).strip())
+            num = self._remove_parentheses(m.group(2).strip())
             p.add_run(name).bold = True
             if num != '':
                 r = p.add_run('\u00A0' + num)
@@ -230,13 +233,13 @@ class AbstractGenerator:
         p.add_run('\n')
 
         # Affiliation
-        affiliations = self._toArray(record['Affiliation'], '\n')
+        affiliations = self._to_array(record['Affiliation'], '\n')
         first = True
         for affiliation in affiliations:
             m = self.exreg4affiliation.match(affiliation)
-            if first == False:
+            if not first:
                 p.add_run(', ')
-            num = self._removeParentheses(m.group(1).strip())
+            num = self._remove_parentheses(m.group(1).strip())
             name = m.group(2).strip()
             if num != '':
                 r = p.add_run(num + '\u00A0')
@@ -251,30 +254,30 @@ class AbstractGenerator:
         p.paragraph_format.space_after = docx.shared.Pt(12)
 
         # Abstract Body
-        items = self._toArray(record['Abstract'], '\n')
+        items = self._to_array(record['Abstract'], '\n')
         first = True
         for item in items:
             p = doc.add_paragraph(item)
             p.alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.JUSTIFY
             p.paragraph_format.line_spacing = docx.shared.Pt(11)
             p.paragraph_format.space_after = docx.shared.Pt(2)
-            if first == False:
+            if not first:
                 p.paragraph_format.first_line_indent = docx.shared.Pt(12)
             first = False
         p.paragraph_format.space_after = docx.shared.Pt(12)
 
         # Figure
-        if self._empty(record['Figure file Name']) == False:
+        if not self._empty(record['Figure file Name']):
 
             # Figure File Name
             img_fpath = os.path.join(self.image_dir, record['Figure file Name'])
-            size = self._getPreferredImageSize(img_fpath)
+            size = self._get_preferred_image_size(img_fpath)
             doc.add_picture(img_fpath, width=size[0])  # , height=size[1])
             p = doc.paragraphs[-1]
             p.alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.CENTER
 
             # Figure Comment
-            items = self._toArray(record['Figure comment'], '\n')
+            items = self._to_array(record['Figure comment'], '\n')
             first = True
             for item in items:
                 p = doc.add_paragraph()
@@ -289,7 +292,7 @@ class AbstractGenerator:
         p.paragraph_format.space_after = docx.shared.Pt(14)
 
         # References
-        items = self._toArray(record['References'], '\n')
+        items = self._to_array(record['References'], '\n')
         first = True
         for item in items:
             if first:
@@ -306,7 +309,7 @@ class AbstractGenerator:
         p.paragraph_format.space_after = docx.shared.Pt(10)
 
         # Acknowledgement
-        items = self._toArray(record['Acknowledgement'], '\n')
+        items = self._to_array(record['Acknowledgement'], '\n')
         first = True
         for item in items:
             p = doc.add_paragraph()
@@ -320,7 +323,7 @@ class AbstractGenerator:
         p.paragraph_format.space_after = docx.shared.Pt(10)
 
         # Funding
-        items = self._toArray(record['Funding'], '\n')
+        items = self._to_array(record['Funding'], '\n')
         first = True
         for item in items:
             p = doc.add_paragraph()
@@ -342,7 +345,7 @@ class AbstractGenerator:
         first = True
         for author in authors:
             m = self.exreg4author.match(author)
-            if first == False:
+            if not first:
                 author_tmp += ', '
             author_tmp += m.group(1).strip()
             first = False
