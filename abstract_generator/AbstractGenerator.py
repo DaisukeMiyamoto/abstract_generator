@@ -159,7 +159,7 @@ class AbstractGenerator:
 
         # Title
         # p = doc.add_paragraph(record.title)
-        p = self._apply_it_sup_sub(doc, record.title, debug=True)
+        p = self._apply_it_sup_sub(doc, record.title)
         for run in p.runs:
             run.font.size = docx.shared.Pt(12)
             run.bold = True
@@ -179,9 +179,7 @@ class AbstractGenerator:
         p.runs[0].italic = True
 
         # Abstract Body
-        self._apply_it_sup_sub(doc, record.abstract, debug=True)
-
-        # p = doc.add_paragraph(record.abstract)
+        self._apply_it_sup_sub(doc, record.abstract)
 
         # keywords
         p = doc.add_paragraph('Keywords: ')
